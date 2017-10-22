@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fstream>
 
 using namespace std;
 
@@ -40,7 +41,24 @@ class Joint {
         }
     }
 };
-int main()
+
+
+
+void printLines(ifstream& infile){
+  string line;
+  getline(infile, line);
+  printf("%s\n", line.c_str());
+  getline(infile, line);
+  printf("%s\n", line.c_str());
+  getline(infile, line);
+  printf("%s\n", line.c_str());
+  getline(infile, line);
+  printf("%s\n", line.c_str());
+}
+
+
+
+int main(int argc, char *argv[])
 {
   // Joint *hips = new Joint();
   // hips->setName("Hips");
@@ -60,63 +78,19 @@ int main()
   // std::cout << hips->getChildren()[0]->getParent()->getName() << endl; //print first child's parent name
   // std::cout << hips->getChildren()[1]->getParent()->getName() << endl; //print second child's parent name
 
-  const char *str = "root hips";
-    char result[20];
-    char name[20];
-    sscanf(str, "%s%s",result,name );
-    cout << result << name << endl;
+  // const char *str = "root hips";
+  //   char result[20];
+  //   char name[20];
+  //   sscanf(str, "%s%s",result,name );
+  //   cout << result << name << endl;
+
+    ifstream infile;
+    infile.open(argv[1]);
+    printLines(infile);
+
+
+
     return 0;
-
-
-
-}
-
-
-
-
-
-ifstream infile;
-infile.open(filename);
-bool hierarchy = false;
-bool motion = false;
-bool open_bracket = false;
-bool closed_bracket = false;
-
-string line;
-while (getline(infile,line)){
-  //convert string to char*
-  const char *str = line.c_str();
-  char beginning[10];
-  sscanf(str, "%s", beginning);
-  if (strcmp(beginning, "HIERARCHY") == 0 ){
-    hierarchy = true;
-    motion = false;
-    continue;
-  }
-  if (hierarchy){
-    //read joint data
-    //scan at first word of line
-    if (strcmp(beginning, "ROOT") == 0){
-      char name[20];
-      sscanf(str, "%s%s", beginning, name);
-      root->setName(name);
-    }
-    else if(strcmp(beginning, "JOINT") == 0){
-
-    }
-    else if(strcmp(beginning, "OFFSET") == 0){
-
-    }
-    else if(strcmp(beginning, "CHANNELS") == 0){
-
-    }
-    else if(strcmp(beginning, "JOINT") == 0){
-
-    }
-  }
-  if (motion){
-    //read motion data
-  }
 
 
 
