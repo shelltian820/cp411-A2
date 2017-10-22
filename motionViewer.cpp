@@ -186,14 +186,20 @@ int main(int argc, char *argv[]){
     cout << "Invalid. Please input one .bvh file.\n";
     exit(1);
   }
-  string input = argv[1];
-  string obj = ".bvh";
-  string input_end = input.substr(input.size()-4);
-  if ( input_end.compare(obj) ){
+  string fileName = argv[1];
+  string bvh = ".bvh";
+  string input_end = fileName.substr(fileName.size()-4);
+  if ( input_end.compare(bvh) ){
     cout << "Invalid. Please input \".bvh\" file.\n";
     exit(1);
   }
 
-  Joint *root = new Joint();
-  read(input);
+  ifstream infile;
+  infile.open(fileName);
+  if (!infile) {
+        cout << "Unable to open file. Exiting.\n";
+        exit(2); //terminate with error
+  }
+  read(infile);
+  infile.close();
 }

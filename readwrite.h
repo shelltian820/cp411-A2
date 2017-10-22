@@ -35,7 +35,12 @@ Joint* build_tree(ifstream& file, Joint *joint){
   joint->setXoffset(x_offset);
   joint->setYoffset(y_offset);
   joint->setZoffset(z_offset);
-  if (joint->isEndSite()) return joint;
+  if(joint->isEndSite()){
+    getline(file, line); // }
+    cout << line << endl;
+    return joint;
+  }
+
 
   //read CHANNELS
   getline(file,line); // CHANNELS - - - - -
@@ -74,9 +79,10 @@ Joint* build_tree(ifstream& file, Joint *joint){
   const char *jointLine = line.c_str();
   char firstWord[10];
   sscanf(jointLine, "%s", firstWord);
+
   if (strcmp(firstWord, "JOINT") == 0){
     Joint *child = new Joint();
-    char *jointName;
+    char jointName[20];
     sscanf(jointLine, "%s %s", firstWord, jointName);
     child->setName(jointName);
     child->setParent(joint);
@@ -87,14 +93,30 @@ Joint* build_tree(ifstream& file, Joint *joint){
   else if(strcmp(firstWord, "End") == 0){
     Joint *endsite = new Joint();
     endsite->setEndSite();
-    return endsite;
+    endsite->setParent(joint);
+    joint->addChild(build_tree(file, endsite));
   }
 
-  //closing bracket
-  else if (strcmp(firstWord, "}") == 0){
-    return joint; //???????
+  //return at closing bracket
+  getline(file, line); // }
+  cout << line << endl;
+  const char *nextLine = line.c_str();
+  char nextWord[10];
+  sscanf(nextLine, "%s", nextWord);
+  if (strcmp(nextWord, "}") == 0){
+    cout << "return\n";
+    return joint;
   }
-
+  else if(strcmp(nextWord, "JOINT") == 0) {
+    cout << "new child\n";
+    char jointName[20];
+    sscanf(nextLine, "%s %s", nextWord, jointName);
+    Joint *child = new Joint();
+    child->setName(jointName);
+    child->setParent(joint);
+    joint->addChild(build_tree(file, child));
+  }
+  cout << "final return\n";
   return joint;
 }
 
@@ -102,31 +124,22 @@ Joint* build_tree(ifstream& file, Joint *joint){
 
 
 
-void read(string filename){
-    ifstream infile;
-    infile.open(filename);
-    if (!infile) {
-          cout << "Unable to open file. Exiting.\n";
-          exit(2); //terminate with error
-    }
+void read(ifstream& infile){
     cout << "reading...\n";
-    //call recursive reading
     string line;
     getline(infile, line); //HIERARCHY
-    //cout << line << "\n";
+    cout << line << "\n";
     const char *str = line.c_str();
-    char word[20];
+    char word[10];
     sscanf(str, "%s", word);
     if (strcmp(word, "HIERARCHY")) exit(-1); //error check
     getline(infile, line); //ROOT hips
-    // cout << line << "\n";
-    char *rootName;
+    cout << line << "\n";
+    char rootName[10];
     sscanf(str, "%s %s", word, rootName);
     if (strcmp(word, "ROOT") == 0){
       Joint *root = new Joint();
       root->setName(rootName);
       root = build_tree(infile,root);
     }
-
-    infile.close();
 }
