@@ -17,7 +17,7 @@ Joint* build_tree(ifstream& file, Joint *joint);
 
 //starts reading joint at {
 Joint* build_tree(ifstream& file, Joint *joint){
-  cout << "build tree\n";
+  //cout << "build tree\n";
   string line;
 
   //read opening bracket
@@ -73,49 +73,58 @@ Joint* build_tree(ifstream& file, Joint *joint){
   else exit(3);
 
   //Next line is either JOINT or End Site follows CHANNELS
-  //JOINT
-  getline(file,line); // JOINT --- OR End Site ---
-  cout << line << endl;
-  const char *jointLine = line.c_str();
-  char firstWord[10];
-  sscanf(jointLine, "%s", firstWord);
 
-  if (strcmp(firstWord, "JOINT") == 0){
-    Joint *child = new Joint();
-    char jointName[20];
-    sscanf(jointLine, "%s %s", firstWord, jointName);
-    child->setName(jointName);
-    child->setParent(joint);
-    //RECURSIVE CALL
-    joint->addChild(build_tree(file,child));
-  }
-  //End Site
-  else if(strcmp(firstWord, "End") == 0){
-    Joint *endsite = new Joint();
-    endsite->setEndSite();
-    endsite->setParent(joint);
-    joint->addChild(build_tree(file, endsite));
+  while(getline(file,line)){ // JOINT --- OR End Site ---
+    cout << line << endl;
+    const char *jointLine = line.c_str();
+    char firstWord[10];
+    sscanf(jointLine, "%s", firstWord);
+
+    //JOINT
+    if (strcmp(firstWord, "JOINT") == 0){
+      Joint *child = new Joint();
+      char jointName[20];
+      sscanf(jointLine, "%s %s", firstWord, jointName);
+      child->setName(jointName);
+      child->setParent(joint);
+      //RECURSIVE CALL
+      joint->addChild(build_tree(file,child));
+
+    }
+
+    //End Site
+    else if(strcmp(firstWord, "End") == 0){
+      Joint *endsite = new Joint();
+      endsite->setEndSite();
+      endsite->setParent(joint);
+      joint->addChild(build_tree(file, endsite));
+    }
+
+    else{ //}
+      return joint;
+    }
+
   }
 
   //return at closing bracket
-  getline(file, line); // }
-  cout << line << endl;
-  const char *nextLine = line.c_str();
-  char nextWord[10];
-  sscanf(nextLine, "%s", nextWord);
-  if (strcmp(nextWord, "}") == 0){
-    cout << "return\n";
-    return joint;
-  }
-  else if(strcmp(nextWord, "JOINT") == 0) {
-    cout << "new child\n";
-    char jointName[20];
-    sscanf(nextLine, "%s %s", nextWord, jointName);
-    Joint *child = new Joint();
-    child->setName(jointName);
-    child->setParent(joint);
-    joint->addChild(build_tree(file, child));
-  }
+  // getline(file, line); // }
+  // cout << line << endl;
+  // const char *nextLine = line.c_str();
+  // char nextWord[10];
+  // sscanf(nextLine, "%s", nextWord);
+  // if (strcmp(nextWord, "}") == 0){
+  //   cout << "return\n";
+  //   return joint;
+  // }
+  // else if(strcmp(nextWord, "JOINT") == 0) {
+  //   cout << "new child\n";
+  //   char jointName[20];
+  //   sscanf(nextLine, "%s %s", nextWord, jointName);
+  //   Joint *child = new Joint();
+  //   child->setName(jointName);
+  //   child->setParent(joint);
+  //   joint->addChild(build_tree(file, child));
+  // }
   cout << "final return\n";
   return joint;
 }
