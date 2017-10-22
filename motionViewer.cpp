@@ -2,7 +2,10 @@
 //CMPUT 411 Assignment 2
 //Oct 11, 2017
 
+//Assumptions: This program does not do error checks within bvh files
+
 #include <string>
+#include <stdio.h>
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
@@ -10,6 +13,9 @@
 #include <vector>
 #include <iomanip>
 #include <cmath>
+#include <cctype>
+//#include "joint.h"
+#include "readwrite.h"
 
 
 #ifdef __APPLE__
@@ -32,71 +38,129 @@ using namespace std;
 
 //Class Definitions
 
-class Joint {
-    public:
-        string name;
-        vector<Joint> children;
-        Joint *parent;
-        
-    string getName(){
-        return name;
-    }
-    void setName(string n){
-        name = n;
-    }
-    vector<Joint> getChildren(){
-        return children;
-    }
-    int getCount(){
-        return children.size();
-    }
-    void addChild(Joint child){
-        children.push_back(child);
-    }
-    Joint* getParent(){
-        return parent;
-    }
-    void setParent(Joint* p){
-        parent = p;
-    }
-    bool isRoot(){
-        if (parent = NULL){
-            return true;
-        } else {
-            return false;
-        }
-    }
-};
+// class Joint {
+//     public:
+//         string name;
+//         vector<Joint*> children;
+//         Joint *parent = 0;
+//         float Xoffset, Yoffset, Zoffset;
+//         int numChannels = 0;
+//         float Xposition, Yposition, Zpostition;
+//         float Zrotation, Yrotation, Xrotation;
+//
+//     string getName(){
+//         return name;
+//     }
+//     void setName(string n){
+//         name = n;
+//     }
+//     vector<Joint*> getChildren(){
+//         return children;
+//     }
+//     int getCount(){
+//         return children.size();
+//     }
+//     void addChild(Joint *child){
+//         children.push_back(child);
+//     }
+//     Joint* getParent(){
+//         return parent;
+//     }
+//     void setParent(Joint* p){
+//         parent = p;
+//     }
+//     bool isRoot(){
+//         if (parent == NULL){
+//             return true;
+//         } else {
+//             return false;
+//         }
+//     }
+//     int getNumChannels(){
+//       return numChannels;
+//     }
+//     int setNumChannels(int n){
+//       numChannels = n;
+//     }
+//
+//
+//
+// };
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////F  U  N  C  T  I  O  N  S////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-void read(string filename, Joint root){
-    ifstream infile;
-    infile.open(filename);
-    if (!infile) {
-          cout << "Unable to open file. Exiting.\n";
-          exit(2); //terminate with error
-    }else{
-        //TODO: Read file and store data
-        cout << "blah\n";
-        
-        
-        
-        
-        
-        
-    }
-    infile.close();
-}
+// string toUpper(string s){
+//   for (auto& x: s) x.toupper(x);
+//   return s;
+// }
+
+// void read(string filename, Joint root){
+//     ifstream infile;
+//     infile.open(filename);
+//     if (!infile) {
+//           cout << "Unable to open file. Exiting.\n";
+//           exit(2); //terminate with error
+//     }else{
+//         //TODO: Read file and store data
+//         cout << "reading...\n";
+//         ifstream infile;
+//         infile.open(filename);
+//         bool hierarchy = false;
+//         bool motion = false;
+//         bool open_bracket = false;
+//         bool closed_bracket = false;
+//
+//         string line;
+//         while (getline(infile,line)){
+//           //convert string to char*
+//           const char *str = line.c_str();
+//           char beginning[10];
+//           sscanf(str, "%s", beginning);
+//           if (strcmp(beginning, "HIERARCHY")) == 0 ){
+//             hierarchy = true;
+//             motion = false;
+//             continue;
+//           }
+//           if (hierarchy = true){
+//             char firstword[10];
+//             //scan at first word of line
+//             if (strcmp(beginning, "ROOT") == 0){
+//
+//             }
+//             else if(strcmp(beginning, "JOINT") == 0){
+//
+//             }
+//             else if(strcmp(beginning, "OFFSET") == 0){
+//
+//             }
+//             else if(strcmp(beginning, "CHANNELS") == 0){
+//
+//             }
+//             else if(strcmp(beginning, "JOINT") == 0){
+//
+//             }
+//
+//           }
+//
+//
+//
+//         }
+//
+//
+//
+//
+//     }
+//     infile.close();
+// }
 
 void write(){
     ofstream outfile;
     outfile.open ("output.bvh");
-    
+
     //TODO: write file
-    
-    
+
+
     outfile.close();
     cout << "\n Data written to: output.bvh \n";
 }
@@ -129,10 +193,7 @@ int main(int argc, char *argv[]){
     cout << "Invalid. Please input \".bvh\" file.\n";
     exit(1);
   }
-  Joint hips;
-  hips.setName("Hips");
-  read(input, hips);
+
+  Joint *root = new Joint();
+  read(input);
 }
-
-
-
