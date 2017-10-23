@@ -74,26 +74,23 @@ Joint* build_tree(ifstream& infile, Joint *joint){
   sscanf(channelsLine, "%s %d", channelsWord, &numCh);
   if(strcmp(channelsWord, "CHANNELS")) exit(2); //error check
   joint->setNumChannels(numCh);
-  vector<char*> cnames; //list of channel names
+  //vector<char*> cnames; //list of channel names
   if(numCh == 6){
-    char cname1[10], cname2[10], cname3[10], cname4[10], cname5[10], cname6[10];
-    sscanf(channelsLine, "%s %d %s %s %s %s %s %s", channelsWord, &numCh,
-      cname1, cname2, cname3, cname4, cname5, cname6);
-    cnames.assign({cname1, cname2, cname3, cname4, cname5, cname6});
-    //print channel names
-    for (int i=0; i< cnames.size(); i++){
-      cout << cnames[i] << " ";
-    } cout << endl;
-    joint->setChannelNames(cnames);
+    char cname1[20], cname2[20], cname3[20], cname4[20], cname5[20], cname6[20];
+    sscanf(channelsLine, "%s %d %s %s %s %s %s %s", channelsWord, &numCh, cname1, cname2, cname3, cname4, cname5, cname6);
+    string cn1=cname1, cn2=cname2, cn3=cname3, cn4=cname4, cn5=cname5, cn6= cname6;
+    joint->set6Channels(cname1, cname2, cname3, cname4, cname5, cname6);
+
+
+    //joint->setChannelNames(cnames);
   }
   else if(numCh == 3){
-    char cname1[10], cname2[10], cname3[10];
+    char cname1[20], cname2[20], cname3[20];
     sscanf(channelsLine, "%s %d %s %s %s", channelsWord, &numCh, cname1, cname2, cname3);
-    cnames.assign({cname1, cname2, cname3});
-    for (int i=0; i< cnames.size(); i++){
-      cout << cnames[i] << " ";
-    } cout << endl;
-    joint->setChannelNames(cnames);
+    string cn1=cname1, cn2=cname2, cn3=cname3;
+    joint->set3Channels(cname1, cname2, cname3);
+
+    //joint->setChannelNames(cnames);
   }
   else exit(3);
 
@@ -178,7 +175,7 @@ void writeHierarchy(ofstream& outfile, Joint* joint){
     outfile << "OFFSET "
       << joint->getXoffset() << " "
       << joint->getYoffset() << " "
-      << joint->getZoffset() << "\n}\n";
+      << joint->getZoffset() << "\n";
       return;
   }
   else{
@@ -189,22 +186,21 @@ void writeHierarchy(ofstream& outfile, Joint* joint){
     else{
       char *jointName = joint->getName();
       outfile << "JOINT " << jointName << "\n{\n";
-
-      //problem here?
-      float xof, yof, zof;
-      xof = joint->getXoffset();
-      yof = joint->getYoffset();
-      zof = joint->getZoffset();
-      outfile << std::fixed;
-      outfile << std::setprecision(6);
-      outfile << "OFFSET "  << xof << " " << yof << " " << zof << "\n}\n";
-      int numCh = joint->getNumChannels();
-      outfile << "CHANNELS " << numCh << " ";
-      vector<char*> channels = joint->getChannelNames();
-      for(int i=0; i<numCh; i++){
-        outfile << channels[i] << " ";
-      }
     }
+
+    float xof, yof, zof;
+    xof = joint->getXoffset();
+    yof = joint->getYoffset();
+    zof = joint->getZoffset();
+    outfile << std::fixed;
+    outfile << std::setprecision(6);
+    outfile << "OFFSET "  << xof << " " << yof << " " << zof << "\n";
+    int numCh = joint->getNumChannels();
+    outfile << "CHANNELS " << numCh << " ";
+    for(int i=0; i<numCh; i++){
+      outfile << joint->getChannelName(i) << " ";
+    } outfile << "\n";
+
   }
 
   vector<Joint*> children = joint->getChildren();
@@ -213,6 +209,7 @@ void writeHierarchy(ofstream& outfile, Joint* joint){
     writeHierarchy(outfile, child);
     outfile << "}\n";
   }
+  outfile<< "}\n"; //matches ROOT bracket
 
 
 

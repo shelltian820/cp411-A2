@@ -1,4 +1,4 @@
-#include <string.h>
+#include <string>
 #include <stdio.h>
 
 using namespace std;
@@ -6,12 +6,12 @@ using namespace std;
 class Joint {
   private:
         bool endSite = false;
-        char *name;
+        char name[20];
         vector<Joint*> children;
         Joint *parent = 0;
         float Xoffset, Yoffset, Zoffset;
         int numChannels = 0;
-        vector<char*> channelNames;
+        vector<string> channelNames;
         float Xposition, Yposition, Zpostition;
         float Zrotation, Yrotation, Xrotation;
 
@@ -19,8 +19,8 @@ class Joint {
     char* getName(){
         return name;
     }
-    void setName(char *n){
-        name = n;
+    void setName(char n[10]){
+        strcpy(name, n);
     }
     vector<Joint*> getChildren(){
         return children;
@@ -81,12 +81,16 @@ class Joint {
     void setNumChannels(int n){
       numChannels = n;
     }
-    vector<char*> getChannelNames(){
-      return channelNames;
+    string getChannelName(int index){
+      return channelNames[index];
     }
-    void setChannelNames(vector<char*> cnames){
-      channelNames = cnames;
+    void set6Channels(string cname1, string cname2, string cname3, string cname4, string cname5, string cname6){
+      channelNames.assign({cname1, cname2, cname3, cname4, cname5, cname6});
     }
+    void set3Channels(string cname1, string cname2, string cname3){
+      channelNames.assign({cname1, cname2, cname3});
+    }
+
     void setEndSite(){
       endSite = true;
     }

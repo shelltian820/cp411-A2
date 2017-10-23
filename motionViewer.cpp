@@ -73,11 +73,6 @@ int main(int argc, char *argv[]){
   Joint *root = new Joint();
   read_hierarchy(infile, root);
 
-  vector<char*> channels = root->getChannelNames();
-  for (int i=0; i<6; i++){
-    cout << "ok ";
-    cout << channels[i] << " ";
-  }
   infile.close();
   cout << "done reading.\n-------------------------------\n\n";
 
