@@ -14,7 +14,6 @@
 #include <iomanip>
 #include <cmath>
 #include <cctype>
-//#include "joint.h"
 #include "readwrite.h"
 
 
@@ -32,13 +31,14 @@
 using namespace std;
 
 //Globals
+vector<Joint*> joints;
+int numFrames;
+float frameTime;
+vector<vector<float>> frames;
 
 
 //Function Prototypes
-void read(string filename);
-Joint* build_tree(ifstream& file, Joint *joint);
-void write(Joint* joint);
-void writeHierarchy(ofstream& outfile, Joint* joint);
+
 
 
 
@@ -69,20 +69,46 @@ int main(int argc, char *argv[]){
         exit(2); //terminate with error
   }
 
+  //read hierarchy
   cout << "Reading...\n";
   Joint *root = new Joint();
   read_hierarchy(infile, root);
+  list_tree(root, joints);
 
+  //read motion
+  string line;
+  getline(infile, line); //MOTION
+  getline(infile, line); //Frames: 20
+  const char *framesLine = line.c_str();
+  char w1[10];
+  sscanf(framesLine, "%s %d", w1, &numFrames);
+  cout << "numFrames = " << numFrames << endl;
+  getline(infile, line); // Frame Time: 0.012312
+  const char *frameTimeLine = line.c_str();
+  char w2[10];
+  sscanf(frameTimeLine, "%s %s %f", w1, w2, &frameTime);
+  cout << "frameTime = " << frameTime << endl;
+  read_motion(infile, frames);
+  //print_motion(frames);
   infile.close();
   cout << "done reading.\n-------------------------------\n\n";
 
-  //vector motion = read_motion();
 
 
 
 
-  //print_tree(root);
+
+  //write
   cout << "Writing...\n";
-  write(root);
+  ofstream outfile;
+  outfile.open("output.bvh");
+  //write hierarchy
+  outfile << "HIERARCHY\n";
+  write_hierarchy(outfile, root);
+  outfile << "}\n"; //matches root bracket
+
+  //write motion
+  write_motion(outfile, frames, numFrames, frameTime);
+  outfile.close();
   cout << "done writing.\n-------------------------------\n\n";
 }

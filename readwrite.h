@@ -2,15 +2,22 @@
 #include <string>
 #include <stdio.h>
 #include <iostream>
+#include <regex>
 
 
 using namespace std;
 
 //FUNCTION PROTOTYPES
-void read(string filename);
-Joint* build_tree(ifstream& file, Joint *joint);
+void read_hierarchy(ifstream& infile, Joint *root);
+Joint* build_tree(ifstream& infile, Joint *joint);
+void read_motion(ifstream& infile, vector<vector<float>> &frames);
+vector<float> split(string str);
 void write(Joint* joint);
-void writeHierarchy(ofstream& outfile, Joint* joint);
+void write_hierarchy(ofstream& outfile, Joint* joint);
+void write_motion(ofstream& outfile, vector<vector<float>> frames);
+
+void list_tree(Joint* joint,vector<Joint*> &allJoints);
+void print_motion(vector<vector<float>> frames);
 
 
 
@@ -33,6 +40,8 @@ void read_hierarchy(ifstream& infile, Joint *root){
 
     root = build_tree(infile,root);
 
+    //return infile; //????
+
 }
 
 
@@ -53,7 +62,8 @@ Joint* build_tree(ifstream& infile, Joint *joint){
   const char *offsetLine = line.c_str();
   char offsetWord[10];
   float x_offset, y_offset, z_offset;
-  sscanf(offsetLine, "%s %f %f %f", offsetWord, &x_offset, &y_offset, &z_offset);
+  sscanf(offsetLine, "%s %f %f %f",
+    offsetWord, &x_offset, &y_offset, &z_offset);
   if(strcmp(offsetWord, "OFFSET")) exit(1); //error check
   joint->setXoffset(x_offset);
   joint->setYoffset(y_offset);
@@ -77,7 +87,8 @@ Joint* build_tree(ifstream& infile, Joint *joint){
   //vector<char*> cnames; //list of channel names
   if(numCh == 6){
     char cname1[20], cname2[20], cname3[20], cname4[20], cname5[20], cname6[20];
-    sscanf(channelsLine, "%s %d %s %s %s %s %s %s", channelsWord, &numCh, cname1, cname2, cname3, cname4, cname5, cname6);
+    sscanf(channelsLine, "%s %d %s %s %s %s %s %s",
+      channelsWord, &numCh, cname1, cname2, cname3, cname4, cname5, cname6);
     string cn1=cname1, cn2=cname2, cn3=cname3, cn4=cname4, cn5=cname5, cn6= cname6;
     joint->set6Channels(cname1, cname2, cname3, cname4, cname5, cname6);
 
@@ -86,7 +97,8 @@ Joint* build_tree(ifstream& infile, Joint *joint){
   }
   else if(numCh == 3){
     char cname1[20], cname2[20], cname3[20];
-    sscanf(channelsLine, "%s %d %s %s %s", channelsWord, &numCh, cname1, cname2, cname3);
+    sscanf(channelsLine, "%s %d %s %s %s",
+     channelsWord, &numCh, cname1, cname2, cname3);
     string cn1=cname1, cn2=cname2, cn3=cname3;
     joint->set3Channels(cname1, cname2, cname3);
 
@@ -134,42 +146,54 @@ Joint* build_tree(ifstream& infile, Joint *joint){
 
 
 
+void read_motion(ifstream& infile, vector<vector<float>> &frames){
+  string line;
+  while (getline(infile, line)){
+    frames.push_back(split(line));
+  }
 
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//write tree to file
-void write(Joint* joint){
-  ofstream outfile;
-  outfile.open("output.bvh");
-
-  //write hierarchy
-  outfile << "HIERARCHY\n";
-  writeHierarchy(outfile, joint);
-
-  //write motion
-  //writeMotion(vector motion)
-  outfile.close();
-
+vector<float> split(string str){
+  regex re("(-)?\\d+((\\.)?\\d+)?");
+  sregex_iterator begin(str.begin(), str.end(), re);
+  sregex_iterator end;
+  vector<float> output;
+  int n =0;
+  for (std::sregex_iterator i = begin; i != end; ++i) {
+        std::smatch match = *i;
+        std::string match_str = match.str();
+        //convert string to float
+        std::string::size_type sz;
+        float d = stof(match_str, &sz);
+        //add to output vector
+        output.push_back(d);
+        n++;
+  }
+  return output;
 }
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //arguments: output file stream, root joint
-void writeHierarchy(ofstream& outfile, Joint* joint){
+void write_hierarchy(ofstream& outfile, Joint* joint){
   if (joint->isEndSite()){
     outfile << "End Site" << "\n{\n";
     outfile << "OFFSET "
@@ -206,27 +230,78 @@ void writeHierarchy(ofstream& outfile, Joint* joint){
   vector<Joint*> children = joint->getChildren();
   for(int i=0; i<joint->getCount(); i++){
     Joint *child = children[i];
-    writeHierarchy(outfile, child);
+    write_hierarchy(outfile, child);
     outfile << "}\n";
   }
-  outfile<< "}\n"; //matches ROOT bracket
-
-
-
 }
 
-//void writeMotion(ofstream& outfile, ???){}
-
-
-
-
-void print_tree(Joint* joint){
-  cout << joint->getName() << endl;
-  vector<Joint*> children = joint->getChildren();
-  for (int i=0; i<joint->getCount(); i++){
-    print_tree(children[i]);
+void write_motion(ofstream& outfile, vector<vector<float>> frames, int numFrames, float frameTime){
+  outfile << "MOTION\n";
+  outfile << "Frames: " << numFrames << "\n";
+  outfile << fixed;
+  outfile << setprecision(6);
+  outfile << "Frame Time: " << frameTime << "\n";
+  int f = frames.size();
+  for (int i=0; i<f; i++){
+    int n = frames[i].size();
+    for (int j=0; j<n; j++){
+      outfile << frames[i][j] << " ";
+    }
+    outfile << "\n";
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void list_tree(Joint* joint,vector<Joint*> &allJoints){
+  //cout << joint->getName() << endl;
+  allJoints.push_back(joint);
+  vector<Joint*> children = joint->getChildren();
+  for (int i=0; i<joint->getCount(); i++){
+    list_tree(children[i], allJoints);
+  }
+
+}
+
+
+void print_motion(vector<vector<float>> frames){
+  int f = frames.size();
+  for (int i=0; i<f; i++){
+    int n = frames[i].size();
+    for (int j=0; j<n; j++){
+      cout << frames[i][j] << " ";
+    }
+    cout << "\n\n";
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
