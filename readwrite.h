@@ -8,17 +8,48 @@
 using namespace std;
 
 //FUNCTION PROTOTYPES
+void read(string fileName, Joint *root, vector<Joint*> &joints, int *numFramesPointer, float *frameTimePointer, vector<vector<float>> &frames);
 void read_hierarchy(ifstream& infile, Joint *root);
 Joint* build_tree(ifstream& infile, Joint *joint);
 void read_motion(ifstream& infile, vector<vector<float>> &frames);
 vector<float> split(string str);
-void write(Joint* joint);
+void write(Joint* joint, vector<vector<float>> frames, int numFrames, float frameTime);
 void write_hierarchy(ofstream& outfile, Joint* joint);
-void write_motion(ofstream& outfile, vector<vector<float>> frames);
+void write_motion(ofstream& outfile, vector<vector<float>> frames, int numFrames, float frameTime);
 
 void list_tree(Joint* joint,vector<Joint*> &allJoints);
 void print_motion(vector<vector<float>> frames);
 
+
+
+void read(string fileName, Joint *root, vector<Joint*> &joints, int *numFramesPointer, float *frameTimePointer, vector<vector<float>> &frames){
+  ifstream infile;
+  infile.open(fileName);
+  if (!infile) {
+        cout << "Unable to open file. Exiting.\n";
+        exit(2); //terminate with error
+  }
+
+  //read hierarchy
+  cout << "Reading...\n";
+  read_hierarchy(infile, root);
+  list_tree(root, joints);
+  //read motion
+  string line;
+  getline(infile, line); //MOTION
+  getline(infile, line); //Frames: 20
+  const char *framesLine = line.c_str();
+  char w1[10];
+  sscanf(framesLine, "%s %d", w1, numFramesPointer);
+  getline(infile, line); // Frame Time: 0.012312
+  const char *frameTimeLine = line.c_str();
+  char w2[10];
+  sscanf(frameTimeLine, "%s %s %f", w1, w2, frameTimePointer);
+  read_motion(infile, frames);
+  //print_motion(frames);
+  infile.close();
+  cout << "Done.\n-------------------------------\n\n";
+}
 
 
 //reads bvh file
@@ -190,7 +221,21 @@ vector<float> split(string str){
 
 
 
+void write(Joint* root, vector<vector<float>> frames, int numFrames, float frameTime){
+  cout << "Writing...\n";
+  ofstream outfile;
+  outfile.open("output.bvh");
+  //write hierarchy
+  outfile << "HIERARCHY\n";
+  write_hierarchy(outfile, root);
+  outfile << "}\n"; //matches root bracket
 
+  //write motion
+  write_motion(outfile, frames, numFrames, frameTime);
+  outfile.close();
+  cout << "Done.\n-------------------------------\n\n";
+
+}
 
 //arguments: output file stream, root joint
 void write_hierarchy(ofstream& outfile, Joint* joint){
@@ -267,7 +312,10 @@ void write_motion(ofstream& outfile, vector<vector<float>> frames, int numFrames
 
 
 void list_tree(Joint* joint,vector<Joint*> &allJoints){
-  //cout << joint->getName() << endl;
+  // cout << joint->getName() << " "
+  //   << joint->getXoffset() << " "
+  //   << joint->getYoffset() << " "
+  //   << joint->getZoffset() << endl;
   allJoints.push_back(joint);
   vector<Joint*> children = joint->getChildren();
   for (int i=0; i<joint->getCount(); i++){

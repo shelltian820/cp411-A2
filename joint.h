@@ -84,6 +84,10 @@ class Joint {
     string getChannelName(int index){
       return channelNames[index];
     }
+    vector<string> getChannelNames(){
+      return channelNames;
+    }
+
     void set6Channels(string cname1, string cname2, string cname3, string cname4, string cname5, string cname6){
       channelNames.assign({cname1, cname2, cname3, cname4, cname5, cname6});
     }

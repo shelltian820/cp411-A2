@@ -33,15 +33,26 @@ using namespace std;
 //Globals
 Joint *root = new Joint();
 vector<Joint*> joints;
-int numFrames;
-float frameTime;
+int numFrames = 0; int *numFramesPointer = &numFrames;
+int currentFrameIndex = 0;
+float frameTime = 0.0; float *frameTimePointer = &frameTime;
 vector<vector<float>> frames;
+float eyeX = 0.0, eyeY = 0.0, eyeZ = -30.0, centerX = 0.0, centerY = 0.0, centerZ = 0.0, upX = 0.0, upY = 0.1, upZ = 0.0;
+static float Pleft = -10.0, Pright = 10.0, Pbottom = -10.0, Ptop = 10.0, Pnear = -100.0, Pfar = 100.0; //camera for Perspective mode
+bool playMode = false;
 
 
 //Function Prototypes
+static unsigned int human;
 void keyInput(unsigned char key, int x, int y);
+void drawScene();
+void resize(int w, int h);
+void setup();
 void reset();
-
+void create_lines(Joint *joint, float parentX, float parentY, float parentZ);
+void timer_func(int t);
+void next_frame();
+void translate_figure();
 
 
 
@@ -73,34 +84,10 @@ int main(int argc, char *argv[]){
     exit(1);
   }
 
-  ifstream infile;
-  infile.open(fileName);
-  if (!infile) {
-        cout << "Unable to open file. Exiting.\n";
-        exit(2); //terminate with error
-  }
-
-  //read hierarchy
-  cout << "Reading...\n";
-  // Joint *root = new Joint();
-  read_hierarchy(infile, root);
-  list_tree(root, joints);
-
-  //read motion
-  string line;
-  getline(infile, line); //MOTION
-  getline(infile, line); //Frames: 20
-  const char *framesLine = line.c_str();
-  char w1[10];
-  sscanf(framesLine, "%s %d", w1, &numFrames);
-  getline(infile, line); // Frame Time: 0.012312
-  const char *frameTimeLine = line.c_str();
-  char w2[10];
-  sscanf(frameTimeLine, "%s %s %f", w1, w2, &frameTime);
-  read_motion(infile, frames);
-  //print_motion(frames);
-  infile.close();
-  cout << "Done.\n-------------------------------\n\n";
+  // read file
+  read(fileName, root, joints, numFramesPointer, frameTimePointer, frames);
+  cout << "*numframes =" << numFrames << endl;
+  cout << "*frameTime =" << frameTime << endl;
 
   ////////////////////////////////////////////////////////
   glutInit(&argc, argv);
@@ -109,12 +96,14 @@ int main(int argc, char *argv[]){
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
   glutInitWindowSize(500, 500);
   glutInitWindowPosition(100, 100);
-  glutCreateWindow("Animation");
+  glutCreateWindow(argv[0]);
 
   setup(); //called once
+
   glutDisplayFunc(drawScene); //called every time something changes
   glutReshapeFunc(resize);
   glutKeyboardFunc(keyInput);
+
   glewExperimental = GL_TRUE;
   glewInit();
   glutMainLoop();
@@ -140,13 +129,115 @@ int main(int argc, char *argv[]){
 ///////////////////////////////////////////////////////////////////////////////
 
 void drawScene(){
-  glColor3f(1.0, 1.0, 1.0);
-  glPushMatrix();
-  //glCallList(anObject);???
-  glPopMatrix();
+  cout << "drawScene" << endl;
+  glClear (GL_COLOR_BUFFER_BIT);
+  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); //?????
 
+  glMatrixMode (GL_PROJECTION);
+  glLoadIdentity();
+  glOrtho(-30.0, 30.0, -30.0, 30.0, -100.0, 100.0);
+  //glFrustum(-30.0, 30.0, -30.0, 30.0, -1.0, 10.0);
+  //gluLookAt(eyeX, eyeY, eyeZ, centerX, centerY, centerZ, upX, upY, upZ);
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+
+  //TODO: display current frame
+  // glBegin(GL_LINES);
+  // create_lines(root, root->getXoffset(), root->getYoffset(), root->getZoffset());
+  // glEnd();
+  translate_figure();
+  //move limbs
+
+
+
+  glColor3f(1.0, 1.0, 1.0); //make lines white
+  glLineWidth(1.5);
+  glPushMatrix();
+  glCallList(human); //call display list created in setup
+  glPopMatrix();
   glutSwapBuffers();
 }
+
+
+
+
+
+
+
+void translate_figure(){
+  //depending on the current frame
+  //get current xpos, ypos, and zpos of root
+  //read channels of root, then match frame numbers to channels
+  float xpos=0, ypos=0, zpos=0;
+  vector<string> rootChannels = root->getChannelNames();
+  for(int i=0; i<6; i++){
+    if(rootChannels[i] == "Xposition") xpos = frames[currentFrameIndex][i];
+    if(rootChannels[i] == "Xposition") ypos = frames[currentFrameIndex][i];
+    if(rootChannels[i] == "Xposition") zpos = frames[currentFrameIndex][i];
+  }
+  cout << "translate (" << xpos << ", " << ypos << ", " << zpos << ")\n";
+  glTranslatef(xpos, ypos, zpos);
+}
+
+
+
+void setup(void)
+{
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+
+  human = glGenLists(2);
+  glNewList(human, GL_COMPILE);
+  glBegin(GL_LINES);
+  //add lines
+  create_lines(root, root->getXoffset(), root->getYoffset(), root->getZoffset());
+  //
+  glEnd();
+  glEndList();
+}
+
+
+void create_lines(Joint *joint, float parentX, float parentY, float parentZ){
+  //create a line between point p and q,
+  float jointX = parentX + joint->getXoffset();
+  float jointY = parentY + joint->getYoffset();
+  float jointZ = parentZ + joint->getZoffset();
+
+  //create line between joint and parent
+  glVertex3f(jointX, jointY, jointZ);
+  glVertex3f(parentX, parentY, parentZ);
+
+  if (joint->isEndSite()){
+    return; //????
+  }
+  else{
+    vector<Joint*> children = joint->getChildren();
+    int numCh = joint->getCount();
+    for (int i=0; i<numCh; i++){
+      create_lines(children[i], jointX, jointY, jointZ);
+    }
+  }
+}
+
+
+void timer_func(int t){
+  // Do something every X milliseconds
+  // move to next frame
+  if (playMode){
+    next_frame();
+    cout << currentFrameIndex << endl;
+    glutPostRedisplay();
+    int msecFrameTime = frameTime*1000;
+    // glutTimerFunc(msecFrameTime, timer_func, 0);
+    glutTimerFunc(msecFrameTime, timer_func, 0);
+  }
+}
+
+
+void next_frame(){
+  if (currentFrameIndex < numFrames-1) currentFrameIndex++;
+  else currentFrameIndex = 0;
+}
+
 
 
 
@@ -161,47 +252,47 @@ void keyInput(unsigned char key, int x, int y){
         reset();
         break;
       case 'w':
-        cout << "Writing...\n";
-        ofstream outfile;
-        outfile.open("output.bvh");
-        //write hierarchy
-        outfile << "HIERARCHY\n";
-        write_hierarchy(outfile, root);
-        outfile << "}\n"; //matches root bracket
-
-        //write motion
-        write_motion(outfile, frames, numFrames, frameTime);
-        outfile.close();
-        cout << "Done.\n-------------------------------\n\n";
+        write(root, frames, numFrames, frameTime);
         break;
-      case 'p': //pause
+      case 'p': //play
+        if (playMode == false){
+          playMode = true;
+          timer_func(0);
+        }
+        glutPostRedisplay();
+        break;
+      case 'P': //pause
+        if (playMode == true){
+          playMode = false;
+        }
+        glutPostRedisplay();
         break;
 
       //camera control
       case 'd': //dolly
-      break;
+        break;
       case 'D':
-      break;
+        break;
       case 'c': //crane
-      break;
+        break;
       case 'C':
-      break;
+        break;
       case 'z': //zoom
-      break;
+        break;
       case 'Z':
-      break;
+        break;
       case 't': //tilt
-      break;
+        break;
       case 'T':
-      break;
+        break;
       case 'a': //pan
-      break;
+        break;
       case 'A':
-      break;
+        break;
       case 'l': //roll
-      break;
+        break;
       case 'L':
-      break;
+        break;
 
       //speed control
       case 43: // +
@@ -222,9 +313,9 @@ void reset(){
   glutPostRedisplay();
 }
 
-
-void setup(void)
-{
-	glClearColor(0.0, 0.0, 0.0, 0.0);
+void resize(int w, int h){
+	glViewport(0, 0, w, h);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
 
 }
