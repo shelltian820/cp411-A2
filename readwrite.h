@@ -310,9 +310,15 @@ void write_motion(ofstream& outfile, vector<vector<float>> frames, int numFrames
 
 
 
-
+int ID = 0;
 void list_tree(Joint* joint,vector<Joint*> &allJoints){
-  // cout << joint->getName() << " "
+  //add joint pointers to a list and assign joint IDs
+  if (joint->isEndSite() == false){
+    joint->setID(ID);
+    ID++;
+  }
+  // cout << joint->getID() << " "
+  //   << joint->getName() << " "
   //   << joint->getXoffset() << " "
   //   << joint->getYoffset() << " "
   //   << joint->getZoffset() << endl;

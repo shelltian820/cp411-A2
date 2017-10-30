@@ -37,9 +37,9 @@ int numFrames = 0; int *numFramesPointer = &numFrames;
 int currentFrameIndex = 0;
 float frameTime = 0.0; float *frameTimePointer = &frameTime;
 vector<vector<float>> frames;
-float eyeX = 0.0, eyeY = 0.0, eyeZ = -30.0, centerX = 0.0, centerY = 0.0, centerZ = 0.0, upX = 0.0, upY = 0.1, upZ = 0.0;
-static float Pleft = -10.0, Pright = 10.0, Pbottom = -10.0, Ptop = 10.0, Pnear = -100.0, Pfar = 100.0; //camera for Perspective mode
+static float Fleft=-20.0, Fright=20.0, Fbottom=-20.0, Ftop=20.0, Fnear=5.0, Ffar=100.0; //frustum parameters
 bool playMode = false;
+bool initialPose = true;
 
 
 //Function Prototypes
@@ -49,7 +49,8 @@ void drawScene();
 void resize(int w, int h);
 void setup();
 void reset();
-void create_lines(Joint *joint, float parentX, float parentY, float parentZ);
+float deg_to_rad(float degree);
+void draw_figure(Joint *joint, float parentX, float parentY, float parentZ);
 void timer_func(int t);
 void next_frame();
 void translate_figure();
@@ -86,8 +87,8 @@ int main(int argc, char *argv[]){
 
   // read file
   read(fileName, root, joints, numFramesPointer, frameTimePointer, frames);
-  cout << "*numframes =" << numFrames << endl;
-  cout << "*frameTime =" << frameTime << endl;
+  // cout << "*numframes =" << numFrames << endl;
+  // cout << "*frameTime =" << frameTime << endl;
 
   ////////////////////////////////////////////////////////
   glutInit(&argc, argv);
@@ -96,7 +97,7 @@ int main(int argc, char *argv[]){
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
   glutInitWindowSize(500, 500);
   glutInitWindowPosition(100, 100);
-  glutCreateWindow(argv[0]);
+  glutCreateWindow(argv[1]);
 
   setup(); //called once
 
@@ -129,38 +130,97 @@ int main(int argc, char *argv[]){
 ///////////////////////////////////////////////////////////////////////////////
 
 void drawScene(){
-  cout << "drawScene" << endl;
-  glClear (GL_COLOR_BUFFER_BIT);
-  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); //?????
+  //glClear (GL_COLOR_BUFFER_BIT);
+  glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glMatrixMode (GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(-30.0, 30.0, -30.0, 30.0, -100.0, 100.0);
-  //glFrustum(-30.0, 30.0, -30.0, 30.0, -1.0, 10.0);
-  //gluLookAt(eyeX, eyeY, eyeZ, centerX, centerY, centerZ, upX, upY, upZ);
+  // glOrtho(-30.0, 30.0, -30.0, 30.0, -100.0, 100.0);
+  glFrustum(Fleft, Fright, Fbottom, Ftop, Fnear, Ffar);
+  //gluLookAt(0.0, 20.0 , -10, 0.0, 20.0, -15.0, 0.0, 1.0, 0.0);
+
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
-  //TODO: display current frame
-  // glBegin(GL_LINES);
-  // create_lines(root, root->getXoffset(), root->getYoffset(), root->getZoffset());
-  // glEnd();
+  //display current frame
+  glTranslatef(0.0,0.0,-10);
   translate_figure();
-  //move limbs
-
 
 
   glColor3f(1.0, 1.0, 1.0); //make lines white
   glLineWidth(1.5);
   glPushMatrix();
-  glCallList(human); //call display list created in setup
+  //glCallList(human); //call display list created in setup
+
+  glBegin(GL_LINES);
+  draw_figure(root, root->getXoffset(), root->getYoffset(), root->getZoffset());
+  glEnd();
+
   glPopMatrix();
   glutSwapBuffers();
 }
 
+float deg_to_rad(float degree){
+  float radian = 3.141592/180.0 * degree;
+  return radian;
+}
+
+void draw_figure(Joint *joint, float parentX, float parentY, float parentZ){
+  //figure is drawn depending on current frame
+  //create a line between point p and q,
+  float jointX, jointY, jointZ;
+
+  if (initialPose){
+    jointX = parentX + joint->getXoffset();
+    jointY = parentY + joint->getYoffset();
+    jointZ = parentZ + joint->getZoffset();
+  }
+
+  else{
+    jointX =  joint->getXoffset();
+    jointY =  joint->getYoffset();
+    jointZ =  joint->getZoffset();
 
 
+    //rotating current point by xrot, yrot, zrot
+    //find corresponding rotation values for the current frame and joint
 
+    vector<float> currentFrame = frames[currentFrameIndex];
+    int jointID = joint->getID(); //joint id is the same index in joints
+    float zrot = deg_to_rad(currentFrame[3+3*jointID]);
+    float yrot = deg_to_rad(currentFrame[3+3*jointID+1]);
+    float xrot = deg_to_rad(currentFrame[3+3*jointID+2]);
+    //rotate along z axis
+    jointX = cos(zrot)*jointX - sin(zrot)*jointY;
+    jointY = sin(zrot)*jointX + cos(zrot)*jointY;
+    //rotate along y axis
+    jointX = cos(yrot)*jointX + sin(yrot)*jointZ;
+    jointZ = -sin(yrot)*jointX + cos(yrot)*jointZ;
+    //rotate along x axis
+    jointY = cos(xrot)*jointY - sin(xrot)*jointZ;
+    jointZ = sin(xrot)*jointY + cos(xrot)*jointZ;
+
+    jointX += parentX;
+    jointY += parentY;
+    jointZ += parentZ;
+  }
+
+  //draw line between joint and parent
+  glVertex3f(jointX, jointY, jointZ);
+  glVertex3f(parentX, parentY, parentZ);
+
+
+  if (joint->isEndSite()){
+    return;
+  }
+  else{
+    vector<Joint*> children = joint->getChildren();
+    int numCh = joint->getCount();
+    for (int i=0; i<numCh; i++){
+      draw_figure(children[i], jointX, jointY, jointZ);
+    }
+  }
+}
 
 
 
@@ -172,51 +232,15 @@ void translate_figure(){
   vector<string> rootChannels = root->getChannelNames();
   for(int i=0; i<6; i++){
     if(rootChannels[i] == "Xposition") xpos = frames[currentFrameIndex][i];
-    if(rootChannels[i] == "Xposition") ypos = frames[currentFrameIndex][i];
-    if(rootChannels[i] == "Xposition") zpos = frames[currentFrameIndex][i];
+    if(rootChannels[i] == "Yposition") ypos = frames[currentFrameIndex][i];
+    if(rootChannels[i] == "Zposition") zpos = frames[currentFrameIndex][i];
   }
-  cout << "translate (" << xpos << ", " << ypos << ", " << zpos << ")\n";
+  //cout << "translate (" << xpos << ", " << ypos << ", " << zpos << ")\n";
   glTranslatef(xpos, ypos, zpos);
+
 }
 
 
-
-void setup(void)
-{
-	glClearColor(0.0, 0.0, 0.0, 0.0);
-
-  human = glGenLists(2);
-  glNewList(human, GL_COMPILE);
-  glBegin(GL_LINES);
-  //add lines
-  create_lines(root, root->getXoffset(), root->getYoffset(), root->getZoffset());
-  //
-  glEnd();
-  glEndList();
-}
-
-
-void create_lines(Joint *joint, float parentX, float parentY, float parentZ){
-  //create a line between point p and q,
-  float jointX = parentX + joint->getXoffset();
-  float jointY = parentY + joint->getYoffset();
-  float jointZ = parentZ + joint->getZoffset();
-
-  //create line between joint and parent
-  glVertex3f(jointX, jointY, jointZ);
-  glVertex3f(parentX, parentY, parentZ);
-
-  if (joint->isEndSite()){
-    return; //????
-  }
-  else{
-    vector<Joint*> children = joint->getChildren();
-    int numCh = joint->getCount();
-    for (int i=0; i<numCh; i++){
-      create_lines(children[i], jointX, jointY, jointZ);
-    }
-  }
-}
 
 
 void timer_func(int t){
@@ -224,11 +248,10 @@ void timer_func(int t){
   // move to next frame
   if (playMode){
     next_frame();
-    cout << currentFrameIndex << endl;
     glutPostRedisplay();
     int msecFrameTime = frameTime*1000;
-    // glutTimerFunc(msecFrameTime, timer_func, 0);
     glutTimerFunc(msecFrameTime, timer_func, 0);
+    // glutTimerFunc(100, timer_func, 0);
   }
 }
 
@@ -256,6 +279,7 @@ void keyInput(unsigned char key, int x, int y){
         break;
       case 'p': //play
         if (playMode == false){
+          initialPose = false;
           playMode = true;
           timer_func(0);
         }
@@ -270,16 +294,28 @@ void keyInput(unsigned char key, int x, int y){
 
       //camera control
       case 'd': //dolly
+        Fleft -= 1.0;
+        Fright -= 1.0;
         break;
       case 'D':
+        Fleft += 1.0;
+        Fright += 1.0;
         break;
       case 'c': //crane
+        Fbottom -= 1.0;
+        Ftop -= 1.0;
         break;
       case 'C':
+        Fbottom += 1.0;
+        Ftop += 1.0;
         break;
       case 'z': //zoom
+        Fnear -= 1.0;
+        Ffar -= 1.0;
         break;
       case 'Z':
+        Fnear += 1.0;
+        Ffar += 1.0;
         break;
       case 't': //tilt
         break;
@@ -308,14 +344,53 @@ void keyInput(unsigned char key, int x, int y){
 
 
 void reset(){
+  playMode = false;
+  initialPose = true;
+  Fleft=-20.0; Fright=20.0; Fbottom=-20.0; Ftop=20.0; Fnear=5.0; Ffar=100.0;
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
+  currentFrameIndex = 0;
+  setup();
   glutPostRedisplay();
+
 }
 
 void resize(int w, int h){
 	glViewport(0, 0, w, h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
+
+}
+
+
+void setup(void)
+{
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+
+  //create object
+  // human = glGenLists(2);
+  // glNewList(human, GL_COMPILE);
+  // glBegin(GL_LINES);
+  // draw_figure(root, root->getXoffset(), root->getYoffset(), root->getZoffset());
+  // glEnd();
+  // glEndList();
+
+  // adjust camera position depending on first frame's x, y, z position
+  // change frustum parameters
+  // float xpos=0, ypos=0, zpos=0;
+  // vector<string> rootChannels = root->getChannelNames();
+  // for(int i=0; i<6; i++){
+  //   if(rootChannels[i] == "Xposition") xpos = frames[currentFrameIndex][i];
+  //   if(rootChannels[i] == "Yposition") ypos = frames[currentFrameIndex][i];
+  //   if(rootChannels[i] == "Zposition") zpos = frames[currentFrameIndex][i];
+  // }
+  // Fleft = xpos - 20.0;
+  // Fright = xpos + 20.0;
+  // Fbottom = ypos - 20.0;
+  // Ftop = ypos + 20.0;
+  // Fnear = -zpos - 20.0;
+  // Ffar = -zpos + 100.0;
+  // cout << xpos << " " << ypos << " " << zpos << " " ;
+  // cout << "frustum (" << Fleft << ", " << Fright << ", "<< Fbottom << ", "<< Ftop << ", "<< Fnear << ", "<< Ffar << ")\n ";
 
 }

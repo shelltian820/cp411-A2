@@ -7,6 +7,7 @@ class Joint {
   private:
         bool endSite = false;
         char name[20];
+        int id;
         vector<Joint*> children;
         Joint *parent = 0;
         float Xoffset, Yoffset, Zoffset;
@@ -21,6 +22,12 @@ class Joint {
     }
     void setName(char n[10]){
         strcpy(name, n);
+    }
+    int getID(){
+      return id;
+    }
+    void setID(int i){
+      id = i;
     }
     vector<Joint*> getChildren(){
         return children;
