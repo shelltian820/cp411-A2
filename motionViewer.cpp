@@ -32,7 +32,7 @@ using namespace std;
 
 //Globals
 Joint *root = new Joint();
-vector<Joint*> joints;
+//vector<Joint*> joints;
 int numFrames = 0; int *numFramesPointer = &numFrames;
 int currentFrameIndex = 0;
 float frameTime = 0.0; float *frameTimePointer = &frameTime;
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]){
   }
 
   // read file
-  read(fileName, root, joints, numFramesPointer, frameTimePointer, frames);
+  read(fileName, root, numFramesPointer, frameTimePointer, frames);
   // cout << "*numframes =" << numFrames << endl;
   // cout << "*frameTime =" << frameTime << endl;
 

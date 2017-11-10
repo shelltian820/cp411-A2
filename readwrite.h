@@ -8,7 +8,7 @@
 using namespace std;
 
 //FUNCTION PROTOTYPES
-void read(string fileName, Joint *root, vector<Joint*> &joints, int *numFramesPointer, float *frameTimePointer, vector<vector<float>> &frames);
+void read(string fileName, Joint *root, int *numFramesPointer, float *frameTimePointer, vector<vector<float>> &frames);
 void read_hierarchy(ifstream& infile, Joint *root);
 Joint* build_tree(ifstream& infile, Joint *joint);
 void read_motion(ifstream& infile, vector<vector<float>> &frames);
@@ -17,12 +17,12 @@ void write(Joint* joint, vector<vector<float>> frames, int numFrames, float fram
 void write_hierarchy(ofstream& outfile, Joint* joint);
 void write_motion(ofstream& outfile, vector<vector<float>> frames, int numFrames, float frameTime);
 
-void list_tree(Joint* joint,vector<Joint*> &allJoints);
+void list_tree(Joint* joint);
 void print_motion(vector<vector<float>> frames);
 
 
 
-void read(string fileName, Joint *root, vector<Joint*> &joints, int *numFramesPointer, float *frameTimePointer, vector<vector<float>> &frames){
+void read(string fileName, Joint *root, int *numFramesPointer, float *frameTimePointer, vector<vector<float>> &frames){
   ifstream infile;
   infile.open(fileName);
   if (!infile) {
@@ -33,7 +33,7 @@ void read(string fileName, Joint *root, vector<Joint*> &joints, int *numFramesPo
   //read hierarchy
   cout << "Reading...\n";
   read_hierarchy(infile, root);
-  list_tree(root, joints);
+  list_tree(root);
   //read motion
   string line;
   getline(infile, line); //MOTION
@@ -311,7 +311,7 @@ void write_motion(ofstream& outfile, vector<vector<float>> frames, int numFrames
 
 
 int ID = 0;
-void list_tree(Joint* joint,vector<Joint*> &allJoints){
+void list_tree(Joint* joint){
   //add joint pointers to a list and assign joint IDs
   if (joint->isEndSite() == false){
     joint->setID(ID);
@@ -322,10 +322,9 @@ void list_tree(Joint* joint,vector<Joint*> &allJoints){
   //   << joint->getXoffset() << " "
   //   << joint->getYoffset() << " "
   //   << joint->getZoffset() << endl;
-  allJoints.push_back(joint);
   vector<Joint*> children = joint->getChildren();
   for (int i=0; i<joint->getCount(); i++){
-    list_tree(children[i], allJoints);
+    list_tree(children[i]);
   }
 
 }
